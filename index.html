@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>Budget</title>
+<style>
+  :root{
+    --bg:#0f1115;
+    --surface:#171a21;
+    --surface-2:#1e222b;
+    --line:#2b303b;
+    --text:#e8eaf0;
+    --muted:#9aa3b2;
+    --good:#3ecf8e;
+    --warn:#e8b339;
+    --bad:#ef5f6b;
+    --accent:#6ea8fe;
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg:#f6f7f9; --surface:#ffffff; --surface-2:#f0f2f5; --line:#e2e5ea;
+      --text:#151821; --muted:#69707d;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--text);
+    font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding:20px 16px 48px; max-width:820px; margin:0 auto;
+  }
+  h1{font-size:19px;margin:0;letter-spacing:-.01em}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:3px}
+
+  header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+  .btn{
+    background:var(--surface-2);color:var(--text);border:1px solid var(--line);
+    border-radius:9px;padding:7px 12px;font-size:13px;font-weight:550;cursor:pointer;
+    font-family:inherit;
+  }
+  .btn:hover{border-color:var(--muted)}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#0b1020}
+  .btn.danger{color:var(--bad);border-color:transparent;background:transparent}
+  .btn:active{transform:translateY(1px)}
+  .row{display:flex;gap:8px;align-items:center}
+
+  /* summary */
+  .summary{
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:22px;
+  }
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:13px 15px;
+  }
+  .card .label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:650}
+  .card .big{font-size:26px;font-weight:680;letter-spacing:-.02em;margin-top:5px;font-variant-numeric:tabular-nums}
+  .card .meta{font-size:12px;color:var(--muted);margin-top:3px;font-variant-numeric:tabular-nums}
+  .bar{height:5px;border-radius:3px;background:var(--surface-2);overflow:hidden;margin-top:9px}
+  .bar > i{display:block;height:100%;border-radius:3px;background:var(--good);transition:width .3s}
+
+  /* circles */
+  .grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));
+    gap:14px;
+  }
+  .cat{
+    display:flex;flex-direction:column;align-items:center;gap:8px;
+    font-family:inherit;color:inherit;
+  }
+  .ringwrap{position:relative;width:118px;height:118px}
+  .cat .ring{
+    position:relative;width:118px;height:118px;
+    background:none;border:0;padding:0;cursor:pointer;color:inherit;font-family:inherit;
+  }
+  .listbtn{
+    position:absolute;bottom:-2px;right:2px;min-width:24px;height:24px;padding:0 6px;
+    border-radius:12px;background:var(--surface-2);border:1px solid var(--line);
+    color:var(--muted);font:600 11.5px/1 inherit;font-family:inherit;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .listbtn:hover{color:var(--text);border-color:var(--muted)}
+  body.editing .listbtn{display:none}
+  .cat svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+  .cat .track{fill:none;stroke:var(--surface-2);stroke-width:9}
+  .cat .prog{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dasharray .35s ease}
+  .cat .track.wk{stroke-width:4}
+  .cat .prog.wk{stroke-width:4;opacity:.62}
+  .cat .wkline{font-size:11.5px;font-variant-numeric:tabular-nums;margin-top:-3px}
+  .cat .face{
+    position:absolute;inset:0;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:1px;pointer-events:none;
+  }
+  .cat .spent{font-size:21px;font-weight:680;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .cat .of{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .cat .name{font-size:13px;font-weight:560;text-align:center;line-height:1.25;max-width:130px}
+  .cat:hover .ring{transform:scale(1.035)}
+  .cat .ring{transition:transform .15s}
+  .cat.over .spent{color:var(--bad)}
+  .pencil{
+    position:absolute;top:-2px;right:6px;width:26px;height:26px;border-radius:50%;
+    background:var(--surface-2);border:1px solid var(--line);display:none;
+    align-items:center;justify-content:center;font-size:12px;
+  }
+  body.editing .pencil{display:flex}
+  body.editing .cat .ring{opacity:.65}
+
+  .add-cat{
+    display:flex;align-items:center;justify-content:center;
+    width:118px;height:118px;border-radius:50%;
+    border:2px dashed var(--line);color:var(--muted);font-size:30px;
+    background:none;cursor:pointer;margin:0 auto;
+  }
+  .add-cat:hover{border-color:var(--accent);color:var(--accent)}
+  .add-wrap{display:none;flex-direction:column;align-items:center;gap:8px}
+  body.editing .add-wrap{display:flex}
+
+  .legend{
+    display:flex;gap:16px;flex-wrap:wrap;justify-content:center;
+    margin-top:18px;font-size:11.5px;color:var(--muted);
+  }
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend .k{display:block;border-radius:2px;background:var(--muted)}
+  .legend .k.outer{width:14px;height:7px}
+  .legend .k.inner{width:14px;height:3px;opacity:.62}
+
+  /* history */
+  .hist{margin-top:30px}
+  .hist h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 8px}
+  .empty{color:var(--muted);font-size:13.5px;padding:6px 2px}
+
+  /* modal */
+  dialog{
+    border:1px solid var(--line);background:var(--surface);color:var(--text);
+    border-radius:16px;padding:20px;width:min(340px,calc(100vw - 32px));
+    box-shadow:0 18px 50px rgba(0,0,0,.45);
+  }
+  dialog::backdrop{background:rgba(0,0,0,.55);backdrop-filter:blur(2px)}
+  dialog h3{margin:0 0 2px;font-size:17px}
+  dialog .hint{color:var(--muted);font-size:12.5px;margin-bottom:14px;font-variant-numeric:tabular-nums}
+  label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:650;margin:12px 0 5px}
+  input[type=text],input[type=number]{
+    width:100%;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+    color:var(--text);font:inherit;padding:10px 12px;font-variant-numeric:tabular-nums;
+  }
+  input:focus{outline:none;border-color:var(--accent)}
+  .amount-input{font-size:30px !important;font-weight:680;text-align:center;letter-spacing:-.02em}
+  .swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:5px}
+  .sw{width:26px;height:26px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+  .sw[aria-pressed=true]{border-color:var(--text)}
+  #ledgerDlg{width:min(460px,calc(100vw - 28px))}
+  .ledger-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .ledger-body{max-height:min(62vh,520px);overflow-y:auto;margin:0 -4px;padding:0 4px}
+  .cycle-head{
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    position:sticky;top:0;background:var(--surface);padding:9px 0 5px;
+    border-bottom:1px solid var(--line);margin-top:6px;
+  }
+  .cycle-head b{font-size:13px;font-weight:650}
+  .cycle-head span{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .txn{display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:14px}
+  .txn .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .txn .txmain{flex:1;min-width:0}
+  .txn .txlabel{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .txn .txlabel.none{color:var(--muted);font-style:italic}
+  .txn .txwhen{display:block;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:1px}
+  .txn .txamt{font-variant-numeric:tabular-nums;font-weight:600}
+  .txn .x,.txn .pen{background:none;border:0;color:var(--muted);cursor:pointer;font-size:14px;padding:2px 3px}
+  .txn .x:hover{color:var(--bad)}
+  .txn .pen:hover{color:var(--accent)}
+
+  .actions{display:flex;gap:8px;margin-top:18px}
+  .actions .btn{flex:1;padding:10px}
+  .spacer{flex:1}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Budget</h1>
+    <div class="sub" id="cycleLine"></div>
+  </div>
+  <div class="row">
+    <button class="btn" id="histBtn">History</button>
+    <button class="btn" id="editBtn">Edit</button>
+    <button class="btn" id="menuBtn" title="Data">•••</button>
+  </div>
+</header>
+
+<div class="summary">
+  <div class="card">
+    <div class="label">Month left</div>
+    <div class="big" id="mLeft">$0</div>
+    <div class="meta" id="mMeta"></div>
+    <div class="bar"><i id="mBar"></i></div>
+  </div>
+  <div class="card">
+    <div class="label">Week left</div>
+    <div class="big" id="wLeft">$0</div>
+    <div class="meta" id="wMeta"></div>
+    <div class="bar"><i id="wBar"></i></div>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="legend">
+  <span><i class="k outer"></i>outer ring = month</span>
+  <span><i class="k inner"></i>inner ring = this week's pace</span>
+</div>
+
+<div class="hist">
+  <h2>Recent</h2>
+  <div id="hist"></div>
+</div>
+
+<!-- entry dialog -->
+<dialog id="entryDlg">
+  <form method="dialog" id="entryForm">
+    <h3 id="entryTitle">Category</h3>
+    <div class="hint" id="entryHint"></div>
+    <input class="amount-input" id="entryAmt" type="text" inputmode="decimal"
+           autocomplete="off" placeholder="0" aria-label="Amount">
+    <input type="text" id="entryNote" autocomplete="off" maxlength="60"
+           placeholder="What was it? (optional)" aria-label="Label" style="margin-top:10px">
+    <div class="actions">
+      <button type="button" class="btn" id="entryCancel">Cancel</button>
+      <button type="submit" class="btn primary">Add</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- edit category dialog -->
+<dialog id="editDlg">
+  <form method="dialog" id="editForm">
+    <h3 id="editTitle">Edit category</h3>
+    <label for="editName">Name</label>
+    <input type="text" id="editName" autocomplete="off" required>
+    <label for="editMax">Monthly max</label>
+    <input type="number" id="editMax" min="0" step="1" required>
+    <label>Color</label>
+    <div class="swatches" id="swatches"></div>
+    <div class="actions">
+      <button type="button" class="btn danger" id="editDelete">Delete</button>
+      <div class="spacer"></div>
+      <button type="button" class="btn" id="editCancel">Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ledger dialog: per-category month list, or full history -->
+<dialog id="ledgerDlg">
+  <div class="ledger-head">
+    <div>
+      <h3 id="ledgerTitle">Transactions</h3>
+      <div class="hint" id="ledgerHint" style="margin-bottom:0"></div>
+    </div>
+    <button class="btn" type="button" id="ledgerClose">Close</button>
+  </div>
+  <div class="ledger-body" id="ledgerBody"></div>
+</dialog>
+
+<!-- data dialog -->
+<dialog id="dataDlg">
+  <h3>Data</h3>
+  <div class="hint">Saved in this browser. Export to back up or move devices.</div>
+  <div class="actions" style="flex-direction:column">
+    <button class="btn" id="exportBtn">Export backup (.json)</button>
+    <button class="btn" id="importBtn">Import backup</button>
+    <button class="btn danger" id="clearBtn">Clear all spending history</button>
+    <button class="btn" id="dataClose">Close</button>
+  </div>
+  <input type="file" id="importFile" accept="application/json" hidden>
+</dialog>
+
+<script>
+(() => {
+"use strict";
+
+const KEY = "budget-app-v1";
+const DAY = 86400000;
+const CYCLE_DAY = 15;                      // resets on the 15th
+const PALETTE = ["#6ea8fe","#3ecf8e","#e8b339","#ef5f6b","#b58cf2","#4fd1c5","#f08a5d","#7f8c9b"];
+
+/* ---------- state ---------- */
+
+const DEFAULTS = {
+  categories: [
+    { id:"c1", name:"Pregame drinks",     max:150, color:PALETTE[0] },
+    { id:"c2", name:"Bar drinks",         max:200, color:PALETTE[1] },
+    { id:"c3", name:"Eating out",         max:200, color:PALETTE[2] },
+    { id:"c4", name:"Toiletries & stuff", max:50,  color:PALETTE[3] },
+    { id:"c5", name:"Gas",                max:50,  color:PALETTE[4] },
+    { id:"c6", name:"Extra",              max:100, color:PALETTE[5] },
+  ],
+  expenses: [],   // {id, catId, amount, ts}
+};
+
+let state = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return structuredClone(DEFAULTS);
+    const d = JSON.parse(raw);
+    return {
+      categories: Array.isArray(d.categories) && d.categories.length ? d.categories : structuredClone(DEFAULTS.categories),
+      expenses:   Array.isArray(d.expenses) ? d.expenses : [],
+    };
+  }catch{ return structuredClone(DEFAULTS); }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(state)); }
+const uid = () => Math.random().toString(36).slice(2,10);
+
+/* ---------- cycle math ---------- */
+
+// Calendar-day helpers — DST-safe (a "day" isn't always 24h of wall clock).
+const midnight = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const daysBetween = (a, b) => Math.round((midnight(b) - midnight(a)) / DAY);
+const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+
+// Most recent CYCLE_DAY at local midnight, on or before `now`.
+function cycleStart(now = new Date()){
+  let d = new Date(now.getFullYear(), now.getMonth(), CYCLE_DAY);
+  if (now < d) d = new Date(now.getFullYear(), now.getMonth() - 1, CYCLE_DAY);
+  return d;
+}
+function cycleEnd(now = new Date()){
+  const s = cycleStart(now);
+  return new Date(s.getFullYear(), s.getMonth() + 1, CYCLE_DAY);
+}
+// Weeks run in 7-day blocks from the cycle start; the last block may be short.
+function weekStart(now = new Date()){
+  const s = cycleStart(now);
+  return addDays(s, Math.floor(daysBetween(s, now) / 7) * 7);
+}
+
+function totals(now = new Date()){
+  const cs = cycleStart(now), ce = cycleEnd(now), ws = weekStart(now);
+  const budget = state.categories.reduce((a,c) => a + (+c.max || 0), 0);
+
+  const perCat = {};
+  for (const c of state.categories) perCat[c.id] = { spent:0, beforeWeek:0, weekSpent:0, count:0, max:+c.max || 0 };
+
+  let monthSpent = 0, weekSpent = 0, beforeWeek = 0;
+  for (const e of state.expenses){
+    if (e.ts < +cs || e.ts >= +ce) continue;         // outside this cycle → already reset
+    const rec = perCat[e.catId];
+    if (!rec) continue;                              // orphan from an old import — not budgeted
+    monthSpent += e.amount;
+    rec.spent += e.amount;
+    rec.count++;
+    if (e.ts >= +ws){ weekSpent += e.amount; rec.weekSpent += e.amount; }
+    else            { beforeWeek += e.amount; rec.beforeWeek += e.amount; }
+  }
+
+  // Pace: what's left at the start of this week, spread over the weeks that remain.
+  // Never promise more this week than is left for the whole cycle — matters in the
+  // final short week, where dividing by a fraction of a week would inflate the pace.
+  const weeksRemaining = Math.max(daysBetween(ws, ce) / 7, 1 / 7);
+  const pace = (cap, spentBefore) => {
+    const left = Math.max(cap - spentBefore, 0);
+    return Math.min(left / weeksRemaining, left);
+  };
+
+  for (const r of Object.values(perCat)){
+    r.weekBudget = pace(r.max, r.beforeWeek);
+    r.weekLeft   = r.weekBudget - r.weekSpent;
+    r.left       = r.max - r.spent;
+  }
+
+  const weekBudget = pace(budget, beforeWeek);
+  const wEnd = addDays(ws, 7);
+
+  return {
+    cs, ce, ws,
+    weekEnd: wEnd < ce ? wEnd : ce,
+    budget, monthSpent, monthLeft: budget - monthSpent,
+    weekBudget, weekSpent, weekLeft: weekBudget - weekSpent,
+    weeksRemaining, perCat,
+    daysLeft: Math.max(daysBetween(now, ce), 0),
+  };
+}
+
+/* ---------- formatting ---------- */
+
+const money = n => {
+  const v = Math.round(n * 100) / 100;
+  const s = Math.abs(v).toLocaleString(undefined,{minimumFractionDigits: Number.isInteger(v) ? 0 : 2, maximumFractionDigits:2});
+  return (v < 0 ? "-$" : "$") + s;
+};
+const mdy = d => d.toLocaleDateString(undefined,{month:"short", day:"numeric"});
+const hm  = d => d.toLocaleTimeString(undefined,{hour:"numeric", minute:"2-digit"});
+const wdy = d => d.toLocaleDateString(undefined,{weekday:"short", month:"short", day:"numeric"});
+const stamp = d => `${wdy(d)} · ${hm(d)}`;
+const barColor = pct => pct >= 1 ? "var(--bad)" : pct >= .8 ? "var(--warn)" : "var(--good)";
+
+/* ---------- render ---------- */
+
+const $ = id => document.getElementById(id);
+const grid = $("grid");
+
+function render(){
+  const t = totals();
+
+  $("cycleLine").textContent =
+    `${mdy(t.cs)} – ${mdy(new Date(+t.ce - DAY))} · ${t.daysLeft} day${t.daysLeft === 1 ? "" : "s"} left · resets the ${CYCLE_DAY}th`;
+
+  // month card
+  const mPct = t.budget ? t.monthSpent / t.budget : 0;
+  $("mLeft").textContent = money(t.monthLeft);
+  $("mLeft").style.color = t.monthLeft < 0 ? "var(--bad)" : "";
+  $("mMeta").textContent = `${money(t.monthSpent)} of ${money(t.budget)} spent`;
+  $("mBar").style.width = Math.min(mPct,1) * 100 + "%";
+  $("mBar").style.background = barColor(mPct);
+
+  // week card
+  const wPct = t.weekBudget ? t.weekSpent / t.weekBudget : 0;
+  $("wLeft").textContent = money(t.weekLeft);
+  $("wLeft").style.color = t.weekLeft < 0 ? "var(--bad)" : "";
+  $("wMeta").textContent =
+    `${money(t.weekSpent)} of ${money(t.weekBudget)} pace · ${mdy(t.ws)}–${mdy(new Date(+t.weekEnd - DAY))}`;
+  $("wBar").style.width = Math.min(wPct,1) * 100 + "%";
+  $("wBar").style.background = barColor(wPct);
+
+  // circles
+  const R = 52, C = 2 * Math.PI * R;      // outer ring: month
+  const RW = 40, CW = 2 * Math.PI * RW;   // inner ring: this week's pace
+  grid.innerHTML = "";
+  for (const c of state.categories){
+    const r = t.perCat[c.id];
+    const max = r.max;
+    const pct = max ? Math.min(r.spent / max, 1) : 0;
+    const over = max && r.spent > max;
+
+    // Inner ring = this week's pace for this category.
+    const wPct = r.weekBudget ? Math.min(r.weekSpent / r.weekBudget, 1) : 0;
+    const wOver = r.weekLeft < 0;
+
+    const el = document.createElement("div");
+    el.className = "cat" + (over ? " over" : "");
+    el.innerHTML = `
+      <div class="ringwrap">
+        <button type="button" class="ring">
+          <svg viewBox="0 0 118 118" aria-hidden="true">
+            <circle class="track" cx="59" cy="59" r="${R}"></circle>
+            <circle class="prog" cx="59" cy="59" r="${R}"
+                    stroke="${over ? "var(--bad)" : c.color}"
+                    stroke-dasharray="${(pct * C).toFixed(1)} ${C.toFixed(1)}"></circle>
+            <circle class="track wk" cx="59" cy="59" r="${RW}"></circle>
+            <circle class="prog wk" cx="59" cy="59" r="${RW}"
+                    stroke="${wOver ? "var(--bad)" : c.color}"
+                    stroke-dasharray="${(wPct * CW).toFixed(1)} ${CW.toFixed(1)}"></circle>
+          </svg>
+          <div class="face">
+            <div class="spent">${money(r.spent)}</div>
+            <div class="of">of ${money(max)}</div>
+          </div>
+          <span class="pencil">✎</span>
+        </button>
+        <button type="button" class="listbtn" title="See all transactions">${r.count}</button>
+      </div>
+      <div class="name"></div>
+      <div class="wkline" style="color:${wOver ? "var(--bad)" : "var(--muted)"}">
+        ${wOver ? money(-r.weekLeft) + " over week" : money(r.weekLeft) + " left this wk"}
+      </div>`;
+    el.querySelector(".name").textContent = c.name;
+    el.querySelector(".ring").addEventListener("click", () =>
+      document.body.classList.contains("editing") ? openEdit(c.id) : openEntry(c.id));
+    el.querySelector(".listbtn").addEventListener("click", () => openLedger(c.id));
+    grid.appendChild(el);
+  }
+
+  const addWrap = document.createElement("div");
+  addWrap.className = "add-wrap";
+  addWrap.innerHTML = `<button class="add-cat" type="button" title="Add category">+</button>
+                       <div class="name">New</div>`;
+  addWrap.querySelector("button").addEventListener("click", () => openEdit(null));
+  grid.appendChild(addWrap);
+
+  renderHistory(t);
+}
+
+// One transaction row, shared by Recent and both ledger views.
+// `primary` picks what the bold line shows: the category name or the label.
+function txnRow(e, primary, onChange){
+  const c = state.categories.find(c => c.id === e.catId);
+  const d = new Date(e.ts);
+  const label = (e.note || "").trim();
+
+  const row = document.createElement("div");
+  row.className = "txn";
+  row.innerHTML = `
+    <span class="dot" style="background:${c ? c.color : "var(--muted)"}"></span>
+    <span class="txmain">
+      <span class="txlabel"></span>
+      <span class="txwhen">${stamp(d)}</span>
+    </span>
+    <span class="txamt">${money(e.amount)}</span>
+    <button class="pen" type="button" title="Edit label">✎</button>
+    <button class="x" type="button" title="Delete">×</button>`;
+
+  const main = row.querySelector(".txlabel");
+  if (primary === "label"){
+    main.textContent = label || "No label";
+    if (!label) main.classList.add("none");
+  } else {
+    main.textContent = (c ? c.name : "(deleted category)") + (label ? ` — ${label}` : "");
+  }
+  row.querySelector(".pen").addEventListener("click", () => {
+    const next = prompt("Label for this transaction:", label);
+    if (next === null) return;
+    e.note = next.trim();
+    save(); render(); onChange && onChange();
+  });
+  row.querySelector(".x").addEventListener("click", () => {
+    if (!confirm(`Delete this ${money(e.amount)} transaction?`)) return;
+    state.expenses = state.expenses.filter(x => x.id !== e.id);
+    save(); render(); onChange && onChange();
+  });
+  return row;
+}
+
+const RECENT_MAX = 25;
+
+function renderHistory(t){
+  const el = $("hist");
+  const all = state.expenses
+    .filter(e => e.ts >= +t.cs && e.ts < +t.ce)
+    .sort((a,b) => b.ts - a.ts);
+  const items = all.slice(0, RECENT_MAX);
+
+  if (!items.length){
+    el.innerHTML = `<div class="empty">Nothing logged this cycle yet — tap a circle to add.</div>`;
+    return;
+  }
+  el.innerHTML = "";
+  for (const e of items) el.appendChild(txnRow(e, "category"));
+
+  if (all.length > items.length){
+    const more = document.createElement("div");
+    more.className = "empty";
+    more.textContent = `+ ${all.length - items.length} more this cycle — see History.`;
+    el.appendChild(more);
+  }
+}
+
+/* ---------- ledger views ---------- */
+
+const ledgerDlg = $("ledgerDlg"), ledgerBody = $("ledgerBody");
+let reopenLedger = null;   // re-render the open ledger after an edit/delete
+
+function showLedger(){ if (!ledgerDlg.open) ledgerDlg.showModal(); }
+$("ledgerClose").addEventListener("click", () => ledgerDlg.close());
+ledgerDlg.addEventListener("close", () => { reopenLedger = null; });
+
+// Every transaction for one category, this cycle. No cap.
+function openLedger(catId){
+  reopenLedger = () => openLedger(catId);
+  const c = state.categories.find(c => c.id === catId);
+  if (!c) return;
+  const t = totals();
+  const r = t.perCat[catId];
+  const items = state.expenses
+    .filter(e => e.catId === catId && e.ts >= +t.cs && e.ts < +t.ce)
+    .sort((a,b) => b.ts - a.ts);
+
+  $("ledgerTitle").textContent = c.name;
+  $("ledgerHint").textContent =
+    `${mdy(t.cs)} – ${mdy(new Date(+t.ce - DAY))} · ${items.length} transaction${items.length===1?"":"s"} · ` +
+    `${money(r.spent)} of ${money(r.max)}`;
+
+  ledgerBody.innerHTML = "";
+  if (!items.length){
+    ledgerBody.innerHTML = `<div class="empty">Nothing logged for this category yet.</div>`;
+  } else {
+    for (const e of items) ledgerBody.appendChild(txnRow(e, "label", reopenLedger));
+  }
+  showLedger();
+}
+
+// Everything ever logged, newest first, grouped by cycle. Kept until deleted.
+function openHistory(){
+  reopenLedger = openHistory;
+  const groups = new Map();
+  for (const e of [...state.expenses].sort((a,b) => b.ts - a.ts)){
+    const key = +cycleStart(new Date(e.ts));
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
+  }
+
+  $("ledgerTitle").textContent = "History";
+  $("ledgerHint").textContent =
+    `${state.expenses.length} transaction${state.expenses.length===1?"":"s"} across ${groups.size} cycle${groups.size===1?"":"s"}`;
+
+  ledgerBody.innerHTML = "";
+  if (!groups.size){
+    ledgerBody.innerHTML = `<div class="empty">No transactions yet.</div>`;
+  } else {
+    for (const [key, items] of [...groups.entries()].sort((a,b) => b[0] - a[0])){
+      const cs = new Date(key), ce = cycleEnd(cs);
+      const sum = items.reduce((a,e) => a + e.amount, 0);
+      const head = document.createElement("div");
+      head.className = "cycle-head";
+      head.innerHTML = `<b>${mdy(cs)} – ${mdy(new Date(+ce - DAY))}</b>
+                        <span>${money(sum)} · ${items.length} txn${items.length===1?"":"s"}</span>`;
+      ledgerBody.appendChild(head);
+      for (const e of items) ledgerBody.appendChild(txnRow(e, "category", reopenLedger));
+    }
+  }
+  showLedger();
+}
+
+$("histBtn").addEventListener("click", openHistory);
+
+/* ---------- amount parsing: "12", "12.50", "12+8-3" ---------- */
+
+function parseAmount(str){
+  const s = String(str).replace(/[\s$,]/g, "");
+  if (!s) return null;
+  if (!/^[+-]?(\d+\.?\d*|\.\d+)([+-](\d+\.?\d*|\.\d+))*$/.test(s)) return null;
+  const m = s.match(/[+-]?(?:\d+\.?\d*|\.\d+)/g);
+  if (!m) return null;
+  const total = m.reduce((a, x) => a + parseFloat(x), 0);
+  return Number.isFinite(total) ? total : null;
+}
+
+/* ---------- entry dialog ---------- */
+
+const entryDlg = $("entryDlg"), entryAmt = $("entryAmt");
+let entryCat = null;
+
+function openEntry(id){
+  const c = state.categories.find(c => c.id === id);
+  if (!c) return;
+  entryCat = id;
+  const r = totals().perCat[id];
+  $("entryTitle").textContent = c.name;
+  $("entryHint").innerHTML =
+    `${money(r.spent)} of ${money(r.max)} used · ${money(r.left)} left this month<br>` +
+    `<span style="color:${r.weekLeft < 0 ? "var(--bad)" : "inherit"}">` +
+    `${money(r.weekLeft)} left this week (pace ${money(r.weekBudget)})</span>`;
+  entryAmt.value = "";
+  $("entryNote").value = "";
+  entryDlg.showModal();
+  entryAmt.focus();
+}
+
+$("entryForm").addEventListener("submit", ev => {
+  const amt = parseAmount(entryAmt.value);
+  if (amt === null || amt === 0){ ev.preventDefault(); entryAmt.focus(); return; }
+  state.expenses.push({
+    id: uid(), catId: entryCat, amount: amt,
+    note: $("entryNote").value.trim(), ts: Date.now(),
+  });
+  save();
+  // let the dialog close, then repaint
+  setTimeout(render, 0);
+});
+$("entryCancel").addEventListener("click", () => entryDlg.close());
+
+/* ---------- edit dialog ---------- */
+
+const editDlg = $("editDlg");
+let editId = null, editColor = PALETTE[0];
+
+function paintSwatches(){
+  const wrap = $("swatches");
+  wrap.innerHTML = "";
+  for (const col of PALETTE){
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "sw"; b.style.background = col;
+    b.setAttribute("aria-pressed", String(col === editColor));
+    b.addEventListener("click", () => { editColor = col; paintSwatches(); });
+    wrap.appendChild(b);
+  }
+}
+
+function openEdit(id){
+  editId = id;
+  const c = id ? state.categories.find(c => c.id === id) : null;
+  $("editTitle").textContent = c ? "Edit category" : "New category";
+  $("editName").value = c ? c.name : "";
+  $("editMax").value = c ? c.max : "";
+  editColor = c ? c.color : PALETTE[state.categories.length % PALETTE.length];
+  $("editDelete").style.visibility = c ? "visible" : "hidden";
+  paintSwatches();
+  editDlg.showModal();
+  $("editName").focus();
+}
+
+$("editForm").addEventListener("submit", ev => {
+  const name = $("editName").value.trim();
+  const max = parseFloat($("editMax").value);
+  if (!name || !Number.isFinite(max) || max < 0){ ev.preventDefault(); return; }
+  if (editId){
+    const c = state.categories.find(c => c.id === editId);
+    Object.assign(c, { name, max, color: editColor });
+  } else {
+    state.categories.push({ id: uid(), name, max, color: editColor });
+  }
+  save();
+  setTimeout(render, 0);
+});
+$("editCancel").addEventListener("click", () => editDlg.close());
+$("editDelete").addEventListener("click", () => {
+  const c = state.categories.find(c => c.id === editId);
+  const n = state.expenses.filter(e => e.catId === editId).length;
+  if (!confirm(`Delete "${c.name}"?` + (n ? `\n\n${n} logged entr${n===1?"y":"ies"} will be removed too.` : ""))) return;
+  state.categories = state.categories.filter(c => c.id !== editId);
+  state.expenses  = state.expenses.filter(e => e.catId !== editId);
+  save(); editDlg.close(); render();
+});
+
+/* ---------- edit mode + data ---------- */
+
+$("editBtn").addEventListener("click", () => {
+  const on = document.body.classList.toggle("editing");
+  $("editBtn").textContent = on ? "Done" : "Edit";
+  $("editBtn").classList.toggle("primary", on);
+});
+
+const dataDlg = $("dataDlg");
+$("menuBtn").addEventListener("click", () => dataDlg.showModal());
+$("dataClose").addEventListener("click", () => dataDlg.close());
+
+$("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `budget-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+$("importBtn").addEventListener("click", () => $("importFile").click());
+$("importFile").addEventListener("change", async ev => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  try{
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.categories) || !Array.isArray(d.expenses)) throw 0;
+    if (!confirm("Replace everything currently saved with this backup?")) return;
+    state = { categories: d.categories, expenses: d.expenses };
+    save(); dataDlg.close(); render();
+  }catch{ alert("That doesn't look like a budget backup."); }
+  ev.target.value = "";
+});
+$("clearBtn").addEventListener("click", () => {
+  const n = state.expenses.length;
+  if (!confirm(`Delete all ${n} transaction${n===1?"":"s"}, including every past month?\n\nThis can't be undone. Categories and their limits are kept.`)) return;
+  state.expenses = [];
+  save(); dataDlg.close(); render();
+});
+
+/* ---------- go ---------- */
+
+render();
+// Repaint if the tab is left open across a day/cycle boundary.
+setInterval(render, 60000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) render(); });
+
+})();
+</script>
+</body>
+</html>
